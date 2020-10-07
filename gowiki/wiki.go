@@ -12,6 +12,8 @@ type Page struct {
 	Body  []byte
 }
 
+var templates = template.Must(template.ParseFiles("public/wiki/templates/edit.html", "public/wiki/templates/view.html"))
+
 func (p *Page) save() error {
 	fileName := p.Title + ".txt"
 	return ioutil.WriteFile(fileName, p.Body, 0600)
@@ -28,15 +30,9 @@ func loadPage(title string) (*Page, error) {
 }
 
 func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	t, err := template.ParseFiles(tmpl + ".html")
-
+	err := templates.ExecuteTemplate(w, tmpl+".html", p)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = t.Execute(w, p)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error()+" occured in renderTemplate\n"+tmpl, http.StatusInternalServerError)
 	}
 }
 
@@ -49,7 +45,7 @@ func viewHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	renderTemplate(w, "public/wiki/templates/view", p)
+	renderTemplate(w, "view", p)
 }
 
 func editHandler(w http.ResponseWriter, r *http.Request) {
@@ -59,7 +55,7 @@ func editHandler(w http.ResponseWriter, r *http.Request) {
 		p = &Page{Title: title}
 	}
 
-	renderTemplate(w, "public/wiki/templates/edit", p)
+	renderTemplate(w, "edit", p)
 }
 
 func saveHandler(w http.ResponseWriter, r *http.Request) {
@@ -72,7 +68,7 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	http.Redirect(w, r, "/view/"+title, http.StatusFound)
 }
 
